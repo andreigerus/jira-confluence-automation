@@ -1,0 +1,55 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef2f7;
+  color: #222;
+}
+.card {
+  width: min(420px, calc(100vw - 32px));
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.12);
+}
+h1 {
+  margin-top: 0;
+  margin-bottom: 24px;
+  font-size: 1.8rem;
+}
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+input[type="date"], button {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 1rem;
+}
+input[type="date"] {
+  margin-bottom: 16px;
+}
+button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+button:hover {
+  background: #1d4ed8;
+}
+.result {
+  margin-top: 20px;
+  min-height: 1.5em;
+  font-size: 1.1rem;
+}

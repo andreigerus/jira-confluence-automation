@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Age Calculator</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="card">
+    <h1>Age Calculator</h1>
+    <form id="ageForm">
+      <label for="birthDate">Enter your birth date</label>
+      <input type="date" id="birthDate" required />
+      <label for="targetDate">Optional future date to check your age</label>
+      <input type="date" id="targetDate" placeholder="Leave blank for today" />
+      <button type="submit">Calculate Age</button>
+    </form>
+    <div id="result" class="result"></div>
+    <p id="numerologyPrediction" class="prediction"></p>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
