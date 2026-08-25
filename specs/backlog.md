@@ -8,6 +8,11 @@ Source spec: [project_spec.md](./project_spec.md)
 
 **Task annotation legend:** each task below is tagged `[MCP]` (can be accomplished by connecting to/exposing tools via an existing MCP server, including the OpenAI Apps SDK's MCP-based tool-calling) or `[custom skill]` (requires bespoke project logic, a custom instruction/skill, or manual setup — not just tool invocation).
 
+**Batch Processing Strategy Legend:** Tasks involving multiple items/files are annotated with recommended processing approaches:
+- **Single Request:** Submit all items/scenarios in one cohesive prompt request (best for unified specifications, FAQs, comprehensive audits)
+- **Iterative Reread:** Process items sequentially, refreshing context between iterations (best for complex interdependencies, priority-based fixes, scenario-by-scenario analysis)
+- **Script Automation:** Automate via code generation frameworks, templates, or programmatic batch processing (best for repetitive patterns, large datasets, code generation at scale)
+
 ---
 
 ## Module 19 GitHub Coding Agent Delegation Opportunities
@@ -76,31 +81,31 @@ The following categories of tasks are ideal candidates for delegation to the Git
 - [ ] Integrate Checkout API with BigCommerce payment gateway (capture/settlement) — `[custom skill]`
 - [ ] Define Oracle ERP order payload schema/contract — `[custom skill]`
 - [ ] Implement order payload sync from Checkout API to Oracle ERP — `[custom skill]`
-- [ ] Handle ERP sync failure/retry scenarios — `[custom skill]`
+- [ ] Handle ERP sync failure/retry scenarios — `[custom skill]` **[Batch: Iterative Reread — handle each failure scenario sequentially]**
 - [ ] Integrate fraud scoring service into the live order submission flow — `[custom skill]`
 - [ ] Full end-to-end wiring: ChatGPT → Checkout API → BigCommerce → Fraud Service → ERP — `[MCP]`
-- [ ] Verify PCI-DSS boundary compliance across integration points (no raw card data outside gateway/tokenization) — `[custom skill]`
-- [ ] Verify GDPR/CCPA data handling for customer data collected in chat (US-only scope) — `[custom skill]`
+- [ ] Verify PCI-DSS boundary compliance across integration points (no raw card data outside gateway/tokenization) — `[custom skill]` **[Batch: Single Request — comprehensive compliance audit of all points]**
+- [ ] Verify GDPR/CCPA data handling for customer data collected in chat (US-only scope) — `[custom skill]` **[Batch: Iterative Reread — review each data handling flow separately]**
 
 ## Phase 4: Testing *(~Weeks 10–12)*
 
-- [ ] Write unit tests for Checkout API (order submission, payment capture, fraud decision handling) — `[custom skill]`
-- [ ] Write integration tests: Checkout API ↔ BigCommerce — `[custom skill]`
-- [ ] Write integration tests: Checkout API ↔ Oracle ERP — `[custom skill]`
-- [ ] Write integration tests: Checkout API ↔ OpenAI Instant Checkout — `[MCP]`
-- [ ] Write end-to-end tests covering full conversational purchase flow (browse → buy → confirm) — `[MCP]`
-- [ ] Test fraud model accuracy and false-positive rate against test transaction sets — `[custom skill]`
+- [ ] Write unit tests for Checkout API (order submission, payment capture, fraud decision handling) — `[custom skill]` **[Batch: Script Automation — generate test suite via code generation framework]**
+- [ ] Write integration tests: Checkout API ↔ BigCommerce — `[custom skill]` **[Batch: Iterative Reread — test each integration scenario sequentially]**
+- [ ] Write integration tests: Checkout API ↔ Oracle ERP — `[custom skill]` **[Batch: Iterative Reread — test each ERP scenario sequentially]**
+- [ ] Write integration tests: Checkout API ↔ OpenAI Instant Checkout — `[MCP]` **[Batch: Single Request — define all integration flows at once]**
+- [ ] Write end-to-end tests covering full conversational purchase flow (browse → buy → confirm) — `[MCP]` **[Batch: Single Request — generate complete test flow specification]**
+- [ ] Test fraud model accuracy and false-positive rate against test transaction sets — `[custom skill]` **[Batch: Script Automation — process multiple transaction batches via analytics script]**
 - [ ] Run load/performance testing on Checkout API under expected chat traffic — `[custom skill]`
-- [ ] Run security/PCI-DSS compliance testing on payment data handling — `[custom skill]`
-- [ ] Fix all blocker/critical issues found during testing (required for launch-ready DoD) — `[custom skill]`
+- [ ] Run security/PCI-DSS compliance testing on payment data handling — `[custom skill]` **[Batch: Iterative Reread — verify compliance at each data touchpoint]**
+- [ ] Fix all blocker/critical issues found during testing (required for launch-ready DoD) — `[custom skill]` **[Batch: Iterative Reread — prioritize and fix issues one at a time]**
 
 ## Phase 5: Documentation *(~Week 12)*
 
 - [ ] Write Checkout API integration/API docs (endpoints, request/response contracts) — `[custom skill]`
 - [ ] Write ERP payload schema/contract documentation — `[custom skill]`
-- [ ] Write on-call/incident response runbook for Checkout API and integration failures — `[custom skill]`
-- [ ] Write customer-facing help content / FAQ for chat checkout experience — `[custom skill]`
-- [ ] Review and finalize [project_spec.md](./project_spec.md) open questions based on decisions made during implementation — `[custom skill]`
+- [ ] Write on-call/incident response runbook for Checkout API and integration failures — `[custom skill]` **[Batch: Iterative Reread — document each failure scenario separately]**
+- [ ] Write customer-facing help content / FAQ for chat checkout experience — `[custom skill]` **[Batch: Single Request — generate FAQ as cohesive set of Q&A pairs]**
+- [ ] Review and finalize [project_spec.md](./project_spec.md) open questions based on decisions made during implementation — `[custom skill]` **[Batch: Iterative Reread — resolve open questions one at a time with implementation context]**
 
 ---
 
