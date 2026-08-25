@@ -17,3 +17,6 @@ Each entry below is an instruction file with a one-line description. Optional su
   + Keywords: compound interest, principal, annual rate, compounding, final amount, interest earned
 - [`./instructions/convert-estimate.agent.md`](./convert-estimate.agent.md) — invoke `tools/convert_estimate.py` to convert story points into a t-shirt size estimate.
   + Keywords: story points, t-shirt size, estimate, XS, S, M, L, XL, XXL
+- [`./instructions/validate-instructions.agent.md`](./validate-instructions.agent.md) — comprehensive guide to using the `tools/validate-transaction-file.py` script for validating individual transaction files against checkout rules (credit card, expiration, special characters).
+  + Keywords: validate transaction, payment validation, credit card validation, luhn check, expiration date, special characters, bulk file processing
+  + Target: `tools/validate-transaction-file.py`, `work/*.json`
