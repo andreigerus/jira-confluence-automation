@@ -1,3 +1,7 @@
+# Module 13 Completion Report
+
+## MCP Configuration
+```json
 {
   "servers": {
     "echo-windows": {
@@ -10,3 +14,15 @@
     }
   }
 }
+```
+
+## Configured Servers
+- echo-windows
+- calculate-windows
+
+## MCP Tool Test
+- Tool used: mcp_echo-windows_get_time
+- Output:
+```
+2026-08-14 12:10:44
+```
