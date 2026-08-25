@@ -10,6 +10,33 @@ Source spec: [project_spec.md](./project_spec.md)
 
 ---
 
+## Module 19 GitHub Coding Agent Delegation Opportunities
+
+The following categories of tasks are ideal candidates for delegation to the GitHub coding agent in Module 19:
+
+**Phase 1:**
+- Define and document Checkout API contract (#4) - API specification & documentation
+
+**Phase 2 & 3:**
+- Implement fraud scoring service endpoint - API implementation task (Module 19 agent with MCP tools)
+- Define Oracle ERP order payload schema/contract - schema specification & documentation
+
+**Phase 4:**
+- Write unit tests for Checkout API - test code generation
+- Write integration tests (Checkout API ↔ BigCommerce, Checkout API ↔ Oracle ERP) - test code generation
+- Write end-to-end tests - test code generation
+
+**Phase 5 (Documentation):**
+- Write Checkout API integration/API docs - documentation generation
+- Write ERP payload schema/contract documentation - documentation generation
+- Write on-call/incident response runbook - documentation generation
+- Write customer-facing help content / FAQ - documentation generation
+- Review and finalize project_spec.md - documentation review & synthesis
+
+**Rationale:** Module 19 agent excels at code generation, test writing, API implementation, and documentation synthesis. These tasks don't require domain-specific decision-making (which remains with humans) but benefit from AI-assisted code scaffolding and documentation automation.
+
+---
+
 ## Phase 1: Setup *(~Weeks 1–2)*
 
 - [ ] Stand up Checkout API service skeleton (repo, CI/CD pipeline, base project structure) — `[custom skill]`

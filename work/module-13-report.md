@@ -3,7 +3,7 @@
 ## MCP Configuration
 ```json
 {
-  "servers": {
+  "mcpServers": {
     "echo-windows": {
       "command": "powershell",
       "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/mcp-echo.ps1"]
@@ -21,8 +21,8 @@
 - calculate-windows
 
 ## MCP Tool Test
-- Tool used: mcp_echo-windows_get_time
+- Tool used: mcp_echo-windows_echo
 - Output:
 ```
-2026-08-14 12:10:44
+Module 13 verification
 ```
