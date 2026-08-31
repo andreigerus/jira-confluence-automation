@@ -1,0 +1,29 @@
+[
+  {
+    "id": "txn_004",
+    "cardholder_name": "Alice Brown",
+    "card_number": "1234567890123456",
+    "expiration": "13/25",
+    "cvc": "999",
+    "email": "alice@example.com",
+    "phone": "555-555-5555"
+  },
+  {
+    "id": "txn_005",
+    "cardholder_name": "Charlie <script>alert('xss')</script>",
+    "card_number": "4532015112830366",
+    "expiration": "01/20",
+    "cvc": "123",
+    "email": "charlie@example.com",
+    "phone": "555-123-4567"
+  },
+  {
+    "id": "txn_006",
+    "cardholder_name": "Diana Prince",
+    "card_number": "9999999999999999",
+    "expiration": "12/26",
+    "cvc": "12",
+    "email": "invalid-email@",
+    "phone": "555"
+  }
+]
