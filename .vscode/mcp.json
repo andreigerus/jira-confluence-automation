@@ -3,6 +3,14 @@
     "echo-windows": {
       "command": "powershell",
       "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/mcp-echo.ps1"]
+    },
+    "calculate-windows": {
+      "command": "powershell",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "${workspaceFolder}/tools/mcp-calculate.ps1"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/"
     }
   }
 }
