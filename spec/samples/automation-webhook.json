@@ -1,0 +1,55 @@
+{
+  "id": "aut-webhook-001",
+  "name": "Create Jira Issue from Confluence Page",
+  "description": "When a Confluence page is published, automatically create a Jira task in the PROJ project",
+  "triggers": [
+    {
+      "type": "webhook",
+      "path": "/webhooks/automations/{automationId}/{webhookId}",
+      "allowedSources": ["confluence"]
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "jira",
+      "operation": "createIssue",
+      "config": {
+        "projectKey": "PROJ",
+        "issueType": "Task",
+        "summary": "{{ trigger.page.title }}",
+        "description": "Created from Confluence page: {{ trigger.page.url }}",
+        "assignee": "team-lead@example.com",
+        "priority": "Medium",
+        "labels": ["automated", "confluence-sync"]
+      },
+      "retryPolicy": {
+        "maxRetries": 2,
+        "backoffMs": 1000
+      },
+      "onError": "fail",
+      "timeout": 30000
+    },
+    {
+      "id": "step-2",
+      "type": "confluence",
+      "operation": "addComment",
+      "config": {
+        "pageId": "{{ trigger.page.id }}",
+        "comment": "Jira issue created: [{{ jira.issueKey }}|{{ jira.url }}]"
+      },
+      "retryPolicy": {
+        "maxRetries": 1,
+        "backoffMs": 2000
+      },
+      "onError": "continue",
+      "timeout": 20000
+    }
+  ],
+  "automationSecret": "vault://confluence-jira-creds-prod",
+  "status": "active",
+  "createdAt": "2026-09-01T10:00:00Z",
+  "updatedAt": "2026-09-02T15:30:00Z",
+  "createdBy": "alice@example.com",
+  "lastModifiedBy": "alice@example.com"
+}

@@ -1,0 +1,1026 @@
+openapi: 3.0.3
+info:
+  title: Jira-Confluence Automation API
+  version: 0.1.0
+  description: |
+    RESTful API for creating, managing, and executing automations against Jira and Confluence.
+    
+    **Authentication:** All endpoints require a Bearer token (JWT or API key) in the `Authorization` header, except `/health` and `/metrics`.
+    
+    **Base Path:** `/api/v1`
+    
+    **Error Handling:** All error responses follow the standard `ErrorResponse` schema with correlation ID for debugging.
+  contact:
+    name: Engineering Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local development
+  - url: https://api.example.com/api/v1
+    description: Production (TBD)
+
+tags:
+  - name: Automations
+    description: Create, retrieve, update, and delete automation definitions
+  - name: Runs
+    description: Trigger and monitor automation runs
+  - name: Health
+    description: Service health and readiness
+  - name: Observability
+    description: Metrics and diagnostic endpoints
+
+paths:
+  /automations:
+    post:
+      tags:
+        - Automations
+      summary: Create a new automation definition
+      operationId: createAutomation
+      security:
+        - bearerAuth: [automations:write]
+      requestBody:
+        description: Automation definition
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutomationInput'
+            example:
+              name: "Create Jira Issue from Confluence Page"
+              description: "Automatically creates a Jira issue when a Confluence page is published with specific tag"
+              triggers:
+                - type: webhook
+                  path: /webhooks/automations/{automationId}/{webhookId}
+                  sourceSystem: confluence
+              steps:
+                - id: step-1
+                  type: jiraCreateIssue
+                  config:
+                    projectKey: PROJ
+                    issueType: Task
+                    summary: "{{ trigger.page.title }}"
+                    description: "Created from: {{ trigger.page.url }}"
+                    assignee: "{{ env.DEFAULT_ASSIGNEE }}"
+                  retryPolicy:
+                    maxRetries: 2
+                    backoffMs: 1000
+                  timeout: 30000
+                  onError: fail
+              automationSecret: vault://jira-creds-prod
+      responses:
+        '201':
+          description: Automation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+        '400':
+          description: Validation error (invalid schema, missing required fields)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "VALIDATION_ERROR"
+                message: "Invalid automation definition"
+                details:
+                  - field: "steps[0].config"
+                    reason: "Missing required field: projectKey"
+                  - field: "triggers[0]"
+                    reason: "Cron expression invalid: '* * * * * *' (6 fields, expected 5)"
+                timestamp: "2026-09-03T14:30:00Z"
+                correlationId: "req-abc123xyz"
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Automations
+      summary: List all automation definitions
+      operationId: listAutomations
+      security:
+        - bearerAuth: [automations:read]
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of results (default 20, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Number of results to skip (for pagination)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: search
+          in: query
+          description: Filter by automation name (partial match)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of automations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutomationList'
+              example:
+                items:
+                  - id: aut-001
+                    name: "Create Jira Issue from Confluence"
+                    description: "Webhook-triggered automation"
+                    status: active
+                    createdAt: "2026-09-01T10:00:00Z"
+                    updatedAt: "2026-09-02T15:30:00Z"
+                    triggers:
+                      - type: webhook
+                pagination:
+                  total: 150
+                  limit: 20
+                  offset: 0
+                  hasMore: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /automations/{automationId}:
+    get:
+      tags:
+        - Automations
+      summary: Retrieve automation definition by ID
+      operationId: getAutomation
+      security:
+        - bearerAuth: [automations:read]
+      parameters:
+        - name: automationId
+          in: path
+          required: true
+          description: Automation ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Automation definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (user does not have permission to view this automation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Automation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Automations
+      summary: Update automation definition (full replacement)
+      operationId: updateAutomation
+      security:
+        - bearerAuth: [automations:write]
+      parameters:
+        - name: automationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutomationInput'
+      responses:
+        '200':
+          description: Automation updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Automation'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (cannot modify automation during active run, or insufficient permissions)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Automation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (e.g., automation has active runs and concurrency policy forbids updates)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Automations
+      summary: Delete automation definition (soft delete / archive)
+      operationId: deleteAutomation
+      security:
+        - bearerAuth: [automations:write]
+      parameters:
+        - name: automationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Automation deleted successfully (no content)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (insufficient permissions)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Automation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (automation has active runs; check concurrency policy)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /automations/{automationId}/run:
+    post:
+      tags:
+        - Runs
+      summary: Trigger an on-demand run of an automation
+      operationId: triggerRun
+      security:
+        - bearerAuth: [runs:execute]
+      parameters:
+        - name: automationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Optional run parameters (can override automation config)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunTriggerInput'
+            example:
+              overrideSteps:
+                - id: step-1
+                  config:
+                    assignee: "user@example.com"
+      responses:
+        '202':
+          description: Run accepted and queued (async processing)
+          headers:
+            Location:
+              description: URL to poll for run status
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunQueued'
+              example:
+                runId: run-20260903-001
+                automationId: aut-001
+                status: queued
+                createdAt: "2026-09-03T14:30:00Z"
+                pollingUrl: "/api/v1/runs/run-20260903-001"
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (insufficient permissions)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Automation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (e.g., concurrent runs not allowed per policy)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /runs/{runId}:
+    get:
+      tags:
+        - Runs
+      summary: Get run status, logs, and results
+      operationId: getRun
+      security:
+        - bearerAuth: [runs:read]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          description: Run ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run details with logs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunEvent'
+              example:
+                runId: run-20260903-001
+                automationId: aut-001
+                status: success
+                startedAt: "2026-09-03T14:30:05Z"
+                completedAt: "2026-09-03T14:30:45Z"
+                steps:
+                  - id: step-1
+                    type: jiraCreateIssue
+                    status: success
+                    output:
+                      issueKey: PROJ-123
+                      issueUrl: "https://jira.example.com/browse/PROJ-123"
+                    logs:
+                      - timestamp: "2026-09-03T14:30:10Z"
+                        level: info
+                        message: "Creating Jira issue in project PROJ"
+                      - timestamp: "2026-09-03T14:30:15Z"
+                        level: info
+                        message: "Issue created: PROJ-123"
+                    duration: 5000
+                error: null
+                totalDuration: 40000
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (user cannot access this run)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /runs/{runId}/cancel:
+    post:
+      tags:
+        - Runs
+      summary: Cancel an in-progress run
+      operationId: cancelRun
+      security:
+        - bearerAuth: [runs:execute]
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Run cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunEvent'
+        '400':
+          description: Cannot cancel run in this state (e.g., already completed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Run not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Service health check (liveness and readiness)
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                timestamp: "2026-09-03T14:30:00Z"
+                components:
+                  postgres:
+                    status: ok
+                    latency: 5
+                  queue:
+                    status: ok
+                    queuedJobs: 3
+                  jiraCloud:
+                    status: ok
+                    latency: 100
+                  confluenceCloud:
+                    status: ok
+                    latency: 95
+        '503':
+          description: Service unavailable (one or more components degraded)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags:
+        - Observability
+      summary: Prometheus metrics endpoint
+      operationId: getMetrics
+      security: []
+      responses:
+        '200':
+          description: Prometheus-format metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus text-format metrics
+              example: |
+                # HELP automation_runs_total Total number of automation runs
+                # TYPE automation_runs_total counter
+                automation_runs_total{status="success"} 150
+                automation_runs_total{status="failed"} 12
+                # HELP automation_run_duration_seconds Run duration histogram
+                # TYPE automation_run_duration_seconds histogram
+                automation_run_duration_seconds_bucket{le="1"} 50
+                automation_run_duration_seconds_bucket{le="5"} 120
+                automation_run_duration_seconds_bucket{le="+Inf"} 162
+
+components:
+  schemas:
+    AutomationInput:
+      type: object
+      required:
+        - name
+        - steps
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: Human-readable automation name
+        description:
+          type: string
+          maxLength: 1000
+          description: Detailed automation description
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trigger'
+          description: Array of triggers (cron, webhook, manual)
+        steps:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Step'
+          description: Sequence of steps to execute
+        automationSecret:
+          type: string
+          description: Reference to Vault secret for Jira/Confluence credentials (e.g., vault://jira-creds-prod)
+
+    Automation:
+      allOf:
+        - $ref: '#/components/schemas/AutomationInput'
+        - type: object
+          required:
+            - id
+            - status
+            - createdAt
+            - updatedAt
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Unique automation identifier
+            status:
+              type: string
+              enum: [active, archived, disabled]
+              description: Automation status
+            createdAt:
+              type: string
+              format: date-time
+              description: ISO 8601 timestamp when automation was created
+            updatedAt:
+              type: string
+              format: date-time
+              description: ISO 8601 timestamp when automation was last updated
+            createdBy:
+              type: string
+              description: User ID who created the automation
+            lastModifiedBy:
+              type: string
+              description: User ID who last modified the automation
+
+    AutomationList:
+      type: object
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Automation'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    Trigger:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [cron, webhook, manual]
+          description: Trigger type
+        cronExpression:
+          type: string
+          description: POSIX cron expression (5 fields) if type=cron (e.g., "0 9 * * MON")
+        path:
+          type: string
+          description: Webhook path suffix if type=webhook (e.g., "/webhooks/{automationId}/{webhookId}")
+        sourceSystem:
+          type: string
+          enum: [jira, confluence, external]
+          description: Source system for webhook trigger
+      discriminator:
+        propertyName: type
+
+    Step:
+      type: object
+      required:
+        - id
+        - type
+        - config
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Unique step identifier within automation
+        type:
+          type: string
+          enum:
+            - jiraCreateIssue
+            - jiraUpdateIssue
+            - jiraTransitionIssue
+            - jiraAddComment
+            - confluenceCreatePage
+            - confluenceUpdatePage
+            - confluenceDeletePage
+            - confluenceMoveContent
+            - confluenceAddComment
+            - httpRequest
+          description: Step operation type
+        config:
+          type: object
+          description: Step-specific configuration (schema varies by type)
+          additionalProperties: true
+        retryPolicy:
+          $ref: '#/components/schemas/RetryPolicy'
+        timeout:
+          type: integer
+          minimum: 1000
+          description: Step timeout in milliseconds
+        onError:
+          type: string
+          enum: [fail, continue, skip]
+          default: fail
+          description: Error handling strategy for this step
+
+    RetryPolicy:
+      type: object
+      properties:
+        maxRetries:
+          type: integer
+          minimum: 0
+          maximum: 5
+          default: 0
+          description: Maximum number of retries
+        backoffMs:
+          type: integer
+          minimum: 1000
+          maximum: 60000
+          default: 1000
+          description: Exponential backoff base in milliseconds
+
+    RunTriggerInput:
+      type: object
+      properties:
+        overrideSteps:
+          type: array
+          items:
+            $ref: '#/components/schemas/Step'
+          description: Override specific steps for this run only
+
+    RunQueued:
+      type: object
+      required:
+        - runId
+        - automationId
+        - status
+        - createdAt
+      properties:
+        runId:
+          type: string
+          description: Unique run identifier
+        automationId:
+          type: string
+          format: uuid
+          description: Associated automation ID
+        status:
+          type: string
+          enum: [queued, running, success, failed, cancelled]
+        createdAt:
+          type: string
+          format: date-time
+        pollingUrl:
+          type: string
+          description: URL to poll for run status
+
+    RunEvent:
+      type: object
+      required:
+        - runId
+        - automationId
+        - status
+        - startedAt
+      properties:
+        runId:
+          type: string
+          description: Unique run identifier
+        automationId:
+          type: string
+          format: uuid
+          description: Associated automation ID
+        status:
+          type: string
+          enum: [queued, running, success, failed, cancelled, timedout]
+          description: Run execution status
+        startedAt:
+          type: string
+          format: date-time
+          description: When run started execution
+        completedAt:
+          type: string
+          format: date-time
+          description: When run completed (null if still running)
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepExecution'
+          description: Execution results for each step
+        error:
+          $ref: '#/components/schemas/RunError'
+          description: Error details if run failed
+        totalDuration:
+          type: integer
+          description: Total run duration in milliseconds
+        correlationId:
+          type: string
+          description: Correlation ID for tracing and logging
+
+    StepExecution:
+      type: object
+      required:
+        - id
+        - type
+        - status
+      properties:
+        id:
+          type: string
+          description: Step ID from automation definition
+        type:
+          type: string
+          description: Step operation type
+        status:
+          type: string
+          enum: [pending, running, success, failed, skipped, cancelled]
+        output:
+          type: object
+          additionalProperties: true
+          description: Step output (varies by step type)
+        logs:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogEntry'
+          description: Execution logs for this step
+        duration:
+          type: integer
+          description: Step duration in milliseconds
+        retryCount:
+          type: integer
+          minimum: 0
+          description: Number of retries executed
+        error:
+          $ref: '#/components/schemas/StepError'
+
+    LogEntry:
+      type: object
+      required:
+        - timestamp
+        - level
+        - message
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        level:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+        context:
+          type: object
+          additionalProperties: true
+          description: Contextual metadata (e.g., Jira issue key, Confluence page ID)
+
+    RunError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code (e.g., "STEP_FAILED", "TIMEOUT", "INVALID_AUTOMATION")
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error context
+
+    StepError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        retryable:
+          type: boolean
+          description: Whether the error is retryable
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error code (e.g., VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, INTERNAL_ERROR)
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: Field name (for validation errors)
+              reason:
+                type: string
+                description: Reason for the error
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of error
+        correlationId:
+          type: string
+          description: Correlation ID for tracing
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        components:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [ok, degraded, unhealthy]
+              latency:
+                type: integer
+                description: Response latency in milliseconds
+              details:
+                type: string
+                description: Additional status details
+
+    Pagination:
+      type: object
+      required:
+        - total
+        - limit
+        - offset
+        - hasMore
+      properties:
+        total:
+          type: integer
+          description: Total number of items available
+        limit:
+          type: integer
+          description: Maximum items returned in this request
+        offset:
+          type: integer
+          description: Number of items skipped
+        hasMore:
+          type: boolean
+          description: Whether more items are available
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token or API key in Bearer format.
+        
+        **JWT Format:** eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        
+        **API Key Format:** api_key_xxxxxxxxxxxxxxxxxxxxxxxx
+        
+        Include in header: `Authorization: Bearer <token>`
+      x-scopeNames:
+        - automations:read
+        - automations:write
+        - runs:read
+        - runs:execute
+        - admin
+
+x-internal-notes:
+  - "Pagination uses offset-based strategy for MVP (cursor-based to be evaluated post-MVP)"
+  - "Run results include full audit trail via correlationId, linked to audit_logs table"
+  - "Step config schema varies by operation type; see spec/operations.md for detailed parameters"
+  - "Concurrency policy enforced at database level; see spec/concurrency.md for rules"
+  - "Error responses include correlationId to link to logs in observability stack"
+  - "All timestamps in ISO 8601 format (UTC)"
+  - "WebSocket support for real-time log streaming (Phase 6, not in MVP)"

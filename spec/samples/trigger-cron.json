@@ -1,0 +1,5 @@
+{
+  "type": "cron",
+  "expression": "0 9 * * MON",
+  "timezone": "America/New_York"
+}

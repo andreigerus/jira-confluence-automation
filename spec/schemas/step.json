@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "step.json",
+  "title": "Step",
+  "description": "A single step in an automation workflow. Represents an operation to execute (e.g., create Jira issue, update Confluence page).",
+  "type": "object",
+  "required": ["id", "type", "operation", "config"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Unique identifier for this step within the automation (e.g., 'step-1', 'create-issue')"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["jira", "confluence", "condition", "loop"],
+      "description": "Step type: jira (Jira operation), confluence (Confluence operation), condition (conditional branch), loop (repetition)"
+    },
+    "operation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Operation name (e.g., 'createIssue', 'updatePage', 'addComment'). Varies by type."
+    },
+    "config": {
+      "type": "object",
+      "description": "Operation-specific configuration parameters. Schema varies by type and operation.",
+      "additionalProperties": true
+    },
+    "retryPolicy": {
+      "type": "object",
+      "description": "Retry behavior for transient failures",
+      "properties": {
+        "maxRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5,
+          "default": 0,
+          "description": "Maximum number of retries (0-5). Default: 0 (no retries)."
+        },
+        "backoffMs": {
+          "type": "integer",
+          "minimum": 1000,
+          "maximum": 60000,
+          "default": 1000,
+          "description": "Initial backoff duration in milliseconds (1000-60000). Uses exponential backoff: backoffMs, 2*backoffMs, 4*backoffMs, etc."
+        }
+      },
+      "additionalProperties": false
+    },
+    "onError": {
+      "type": "string",
+      "enum": ["fail", "continue", "skip"],
+      "default": "fail",
+      "description": "Error handling strategy: 'fail' (stop run), 'continue' (proceed to next step), 'skip' (skip this step)"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 10000,
+      "maximum": 3600000,
+      "default": 300000,
+      "description": "Step timeout in milliseconds (10s - 1h). Default: 300000 (5 minutes). If step exceeds timeout, it fails."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,51 @@
+{
+  "id": "aut-cron-001",
+  "name": "Daily Backlog Refinement Sync",
+  "description": "Every weekday at 9 AM (EST), sync PROJ backlog items from Jira to Confluence roadmap page",
+  "triggers": [
+    {
+      "type": "cron",
+      "expression": "0 9 * * MON-FRI",
+      "timezone": "America/New_York"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "type": "jira",
+      "operation": "searchIssues",
+      "config": {
+        "jql": "project = PROJ AND type = Story AND labels = backlog AND updated >= -1d ORDER BY priority DESC",
+        "maxResults": 50
+      },
+      "retryPolicy": {
+        "maxRetries": 2,
+        "backoffMs": 1000
+      },
+      "onError": "fail",
+      "timeout": 60000
+    },
+    {
+      "id": "step-2",
+      "type": "confluence",
+      "operation": "updatePage",
+      "config": {
+        "pageId": "123456789",
+        "title": "PROJ Backlog - {{ today }}",
+        "content": "<h2>Updated: {{ timestamp }}</h2><table>{{ jira.issues | format_table }}</table>"
+      },
+      "retryPolicy": {
+        "maxRetries": 1,
+        "backoffMs": 2000
+      },
+      "onError": "fail",
+      "timeout": 45000
+    }
+  ],
+  "automationSecret": "vault://jira-confluence-sync",
+  "status": "active",
+  "createdAt": "2026-08-15T14:20:00Z",
+  "updatedAt": "2026-09-03T08:00:00Z",
+  "createdBy": "bob@example.com",
+  "lastModifiedBy": "bob@example.com"
+}

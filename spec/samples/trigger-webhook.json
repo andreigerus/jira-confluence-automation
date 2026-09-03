@@ -1,0 +1,5 @@
+{
+  "type": "webhook",
+  "path": "/webhooks/automations/{automationId}/{webhookId}",
+  "allowedSources": ["confluence", "jira"]
+}

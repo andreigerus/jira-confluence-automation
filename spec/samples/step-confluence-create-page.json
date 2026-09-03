@@ -1,0 +1,18 @@
+{
+  "id": "step-2",
+  "type": "confluence",
+  "operation": "createPage",
+  "config": {
+    "spaceKey": "DOCS",
+    "title": "Issue {{ jira.issueKey }}: {{ jira.summary }}",
+    "parentPageId": "{{ confluenceParentPageId }}",
+    "content": "<p>Jira Issue: <a href='{{ jira.url }}'>{{ jira.issueKey }}</a></p><p>{{ jira.description }}</p>",
+    "labels": ["jira-sync", "automated"]
+  },
+  "retryPolicy": {
+    "maxRetries": 1,
+    "backoffMs": 2000
+  },
+  "onError": "continue",
+  "timeout": 45000
+}

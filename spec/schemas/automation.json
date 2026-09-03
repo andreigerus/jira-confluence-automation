@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "automation.json",
+  "title": "Automation",
+  "description": "An automation definition representing a sequence of operations executed against Jira and/or Confluence in response to triggers.",
+  "type": "object",
+  "required": ["id", "name", "steps"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique automation identifier (UUIDv4)"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "description": "Human-readable automation name"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detailed description of what this automation does (optional)"
+    },
+    "triggers": {
+      "type": "array",
+      "items": {
+        "$ref": "triggers.json"
+      },
+      "description": "Array of triggers (cron, webhook, manual). If omitted, automation is manual-only."
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "step.json"
+      },
+      "minItems": 1,
+      "description": "Sequence of steps to execute. Must have at least one step."
+    },
+    "automationSecret": {
+      "type": "string",
+      "pattern": "^vault://[a-z0-9-]+$",
+      "description": "Reference to Vault secret containing Jira/Confluence credentials (e.g., 'vault://jira-creds-prod'). Credentials are never stored in-line."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["active", "archived", "disabled"],
+      "default": "active",
+      "description": "Automation status: active (enabled), archived (soft-deleted), disabled (paused)"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when automation was created (server-generated)"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when automation was last modified (server-generated)"
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "User ID or email of automation creator (server-generated)"
+    },
+    "lastModifiedBy": {
+      "type": "string",
+      "description": "User ID or email of last modifier (server-generated)"
+    }
+  },
+  "additionalProperties": false
+}

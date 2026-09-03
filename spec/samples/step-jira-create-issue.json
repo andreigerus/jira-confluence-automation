@@ -1,0 +1,20 @@
+{
+  "id": "step-1",
+  "type": "jira",
+  "operation": "createIssue",
+  "config": {
+    "projectKey": "PROJ",
+    "issueType": "Task",
+    "summary": "{{ trigger.page.title }}",
+    "description": "Created from Confluence page: {{ trigger.page.url }}",
+    "assignee": "{{ env.DEFAULT_ASSIGNEE }}",
+    "priority": "Medium",
+    "labels": ["automated", "confluence-sync"]
+  },
+  "retryPolicy": {
+    "maxRetries": 2,
+    "backoffMs": 1000
+  },
+  "onError": "fail",
+  "timeout": 30000
+}
